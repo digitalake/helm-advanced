@@ -53,31 +53,33 @@ Final `helmcharts` directory structure is:
 ```
 .
 ├── django-demo
-│   ├── Chart.lock
-│   ├── charts
-│   │   ├── cert-manager-v1.13.1.tgz
-│   │   ├── ingress-nginx-4.8.1.tgz
-│   │   └── metrics-server-3.11.0.tgz
-│   ├── Chart.yaml
-│   ├── templates
-│   │   ├── configmap.yaml
-│   │   ├── deployment.yaml
-│   │   ├── _helpers.tpl
-│   │   ├── hpa.yaml
-│   │   ├── ingress.yaml
-│   │   ├── issuer.yaml
-│   │   ├── NOTES.txt
-│   │   ├── ns.yaml
-│   │   ├── secret.yaml
-│   │   ├── serviceaccount.yaml
-│   │   ├── service.yaml
-│   │   └── tests
-│   │       └── test-connection.yaml
-│   └── values.yaml
+│   ├── Chart.lock
+│   ├── charts
+│   │   ├── cert-manager-v1.13.1.tgz
+│   │   ├── ingress-nginx-4.8.1.tgz
+│   │   └── metrics-server-3.11.0.tgz
+│   ├── Chart.yaml
+│   ├── .helmignore
+│   ├── templates
+│   │   ├── configmap.yaml
+│   │   ├── deployment.yaml
+│   │   ├── _helpers.tpl
+│   │   ├── hpa.yaml
+│   │   ├── ingress.yaml
+│   │   ├── issuer.yaml
+│   │   ├── NOTES.txt
+│   │   ├── ns.yaml
+│   │   ├── secret.yaml
+│   │   ├── serviceaccount.yaml
+│   │   ├── service.yaml
+│   │   └── tests
+│   │       └── test-connection.yaml
+│   └── values.yaml
 ├── helmfile.yaml
 └── helm_secrets
     ├── django_config.yaml
-    └── django_secret.yaml
+    ├── django_secret.yaml
+    └── .sops.yaml
 ```
 
 In addition to standart values, `Chart.yaml` itself  defines dependencies for the Chart to be included:
