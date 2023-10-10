@@ -89,7 +89,7 @@ livenessProbe:
 
 autoscaling:
   enabled: true
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 4
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
@@ -106,6 +106,12 @@ volumeMounts: []
 # - name: foo
 #   mountPath: "/etc/foo"
 #   readOnly: true
+
+# Define Persistant Volume Claim Options
+pvc:
+  accessModes:
+    - ReadWriteOnce
+  storage: 1Gi # In Gibs
 
 nodeSelector: {}
 

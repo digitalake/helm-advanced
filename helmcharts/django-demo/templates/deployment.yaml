@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "django-demo.fullname" . }}
-  namespace: {{ .Values.namespace}}
+  namespace: {{ .Values.namespace }}
   labels:
     {{- include "django-demo.labels" . | nindent 4 }}
 spec:
@@ -35,6 +35,21 @@ spec:
       serviceAccountName: {{ include "django-demo.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: migrations
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          envFrom:
+          - secretRef:
+              name: {{ include "django-demo.fullname" . }}
+          - configMapRef:
+              name: {{ include "django-demo.fullname" . }}
+          command: [ python, manage.py, migrate ]
+        - name: collectstatic
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          volumeMounts:
+            - name: staticfiles
+              mountPath: /app/staticfiles/
+          command: [ python, manage.py, collectstatic, --noinput ]
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -56,12 +71,18 @@ spec:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- with .Values.volumeMounts }}
           volumeMounts:
+            - name: staticfiles
+              mountPath: "/app/staticfiles/"
+              readOnly: true
+          {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- with .Values.volumes }}
       volumes:
+        - name: staticfiles
+          persistentVolumeClaim:
+            claimName: {{ include "django-demo.fullname" . }}
+      {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.nodeSelector }}
