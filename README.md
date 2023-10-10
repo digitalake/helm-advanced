@@ -40,6 +40,11 @@ docker run -ti --rm -e DIGITALOCEAN_ACCESS_TOKEN  digitalocean/doctl:latest kube
 > [!NOTE]
 > The command works fine only if DIGITALOCEAN_ACCESS_TOKEN is exported as a local env var
 
+After the succesful `terraform apply`, Kubeconfig is copied into `.kube/config`, to use `kubectl`, You need to run:
+
+```
+export KUBECONFIG=<path-to-local-config>
+```
 
 ### Helm
 
