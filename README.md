@@ -194,4 +194,143 @@ helmfile apply
 
 ![image](https://github.com/digitalake/do-terraform-k8s-helm/assets/109740456/289888ee-543f-474c-977b-22e7a92d6239)
 
+### Implementing PV and PVC to store staticfiles
+
+As [Kubernetes Docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#provisioning) say, there are two ways of `PV` provisioning: `Static` and `Dynamic`.
+
+`Static`: create a `PV` from an existing volume/storage and claim it with `PVC`
+
+`Dynamic`: define `PVC` and `PV` will be created automaticly
+
+Standart Kubernetes actions for `Dynamic` approach:
+- The `PVC` requests storage based on the defined requirements, such as size and access mode.
+- The `PVC` specifies a `StorageClass` in its configuration. A `StorageClass` defines the provisioning mechanism for dynamic volume provisioning.
+- Kubernetes, upon receiving the `PVC` request, checks if a matching `PV` exists. If it doesn't find one, it proceeds to create a new `PV` based on the rules defined in the `StorageClass`.
+- Kubernetes uses the DigitalOcean API (or the appropriate cloud provider's API) to provision the actual storage resource based on the `StorageClass` configuration.
+- Once the `PV` is created and bound to the `PVC`, the `PVC` is marked as "Bound," and the pod can use the `PVC` as a volume.
+
+DigitalOcean provides `StorageClass` which is the `do-block-storage`. The only problem is that the plugin is still just using plain old block storage volumes under the hood, and those do not support mounting to more than one droplet. So unless that changes, then there's nothing this plugin can do to support `ReadWriteMany`. In this case `ReadWriteOnce` is avaliable but it leads to the _"several Pod replicas are trying to use the same storage block"_ issue. I used `HorizontalPodAutoscaler.spec.minReplicas = 1` just to show the `PVC` implementation.
+
+To implement `PVC` I changed the `Deployment` design, so now I have `InitContainers` in my it.  `entrypoint.sh` changes:
+
+```
+#!/bin/sh
+set -e
+# python manage.py migrate         --> moved to the migrations InitContainer
+# python manage.py collectstatic   --> moved to the collectstatic InitContainer
+
+exec gunicorn mysite.wsgi:application \
+    --bind 0.0.0.0:8080 \
+    --workers 3
+```
+You can look at the Helm templates:
+- for PVC - [pvc.yaml](https://github.com/digitalake/do-terraform-k8s-helm/blob/main/helmcharts/django-demo/templates/pvc.yaml)
+- for Deployment - [deployment.yaml](https://github.com/digitalake/do-terraform-k8s-helm/blob/main/helmcharts/django-demo/templates/deployment.yaml)
+
+Lets look at the Helm templating results (PV related code snippets). `pvc.yaml` snippet:
+
+```
+# Source: django-demo/templates/pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+...
+spec:
+  storageClassName: do-block-storage
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+I'm using `volumeMode: Filesystem` to be able to mount to the directory.
+
+Corresponding `deployment.yaml` snippet:
+
+```
+# Source: django-demo/templates/deployment.yaml
+...
+initContainers:
+        - name: migrations
+          image: "ivanopulo/django-demo:1.1-stable"
+          envFrom:
+          - secretRef:
+              name: syndicate-django-demo
+          - configMapRef:
+              name: syndicate-django-demo
+          command: [ python, manage.py, migrate ]
+        - name: collectstatic
+          image: "ivanopulo/django-demo:1.1-stable"
+          volumeMounts:
+            - name: staticfiles
+              mountPath: /app/staticfiles/
+          command: [ python, manage.py, collectstatic, --noinput ]
+      containers:
+        - name: django-demo
+          image: "ivanopulo/django-demo:1.1-stable"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+          - secretRef:
+              name: syndicate-django-demo
+          - configMapRef:
+              name: syndicate-django-demo
+          volumeMounts:
+            - name: staticfiles
+              mountPath: "/app/staticfiles/"
+              readOnly: true
+              ...
+      volumes:
+        - name: staticfiles
+          persistentVolumeClaim:
+            claimName: syndicate-django-demo
+```
+
+As we can see, `migrations` conatiner performs migrations, `collectstatic` container is using volume mount to the `/app/staticfiles` directory to perform copying static files. The same volume is being mounted to the `django-demo` container so it will read the staticfiles from it.
+
+> [!NOTE]
+> `collectstatic` container has got RW permissions for the volume while `django-demo` container has got only RO configured.
+
+Running `helm upgrade`:
+
+![image](https://github.com/digitalake/do-terraform-k8s-helm/assets/109740456/cb1e1c38-1601-42fe-b1c2-897b6e0c3927)
+
+After running helm upgrade we can inspect configured resources.
+
+`PVC`:
+
+<img src="https://github.com/digitalake/do-terraform-k8s-helm/assets/109740456/48fd16c3-a837-4e1c-a7ed-bdbcef19630c" width="1000">
+
+`PV`:
+
+<img src="https://github.com/digitalake/do-terraform-k8s-helm/assets/109740456/ebd8135d-ec71-4fd0-afee-07eed716f392" width="1000">
+
+
+`PV` via DigitalOcean Cloud UI:
+
+<img src="https://github.com/digitalake/do-terraform-k8s-helm/assets/109740456/392d2279-512f-43b8-b862-bf636573e7ae" width="650">
+
+Mounts for `collectstatic` InitContainer:
+
+<img src="https://github.com/digitalake/do-terraform-k8s-helm/assets/109740456/47eb8165-9f4e-4b5e-9d93-981369ce15e9" width="650">
+
+Mounts for `django-demo` application container:
+
+<img src="https://github.com/digitalake/do-terraform-k8s-helm/assets/109740456/15e14302-0e22-41c8-a2d2-f351383e89ef" width="650">
+
+`Pods`:
+
+<img src="https://github.com/digitalake/do-terraform-k8s-helm/assets/109740456/5a149f1d-e7c3-48b5-9100-ec73bd0bd376" width="650">
+
+`django-demo` application container logs:
+
+<img src="https://github.com/digitalake/do-terraform-k8s-helm/assets/109740456/7e0d260e-b741-48f3-9136-3a7ef8f39ed2" width="800">
+
+ 
+
+
 
