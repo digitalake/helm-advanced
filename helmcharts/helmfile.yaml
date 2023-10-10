@@ -1,0 +1,7 @@
+releases:
+  - name: syndicate
+    chart: ./django-demo
+    values:
+      - ./django-demo/values.yaml
+      - ./helm_secrets/django_config.yaml
+      - ./helm_secrets/django_secret.yaml

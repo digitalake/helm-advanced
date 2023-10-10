@@ -1,0 +1,11 @@
+{{- if .Values.issuer.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "django-demo.fullname" . }}
+  namespace: {{ .Values.namespace}}
+  labels:
+    {{- include "django-demo.labels" . | nindent 4 }}
+spec:
+  {{- toYaml .Values.issuer.spec | nindent 2 }}
+{{- end }}
