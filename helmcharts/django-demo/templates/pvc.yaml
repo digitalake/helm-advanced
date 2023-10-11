@@ -6,7 +6,7 @@ metadata:
   labels:
     {{- include "django-demo.labels" . | nindent 4 }}
 spec:
-  storageClassName: do-block-storage
+  storageClassName: {{ .Values.pvc.storageClassName }}
   volumeMode: Filesystem
   {{- with .Values.pvc.accessModes }}
   accessModes:

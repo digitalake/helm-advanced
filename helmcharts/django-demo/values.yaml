@@ -112,6 +112,7 @@ pvc:
   accessModes:
     - ReadWriteOnce
   storage: 1Gi # In Gibs
+  storageClassName: do-block-storage
 
 nodeSelector: {}
 
