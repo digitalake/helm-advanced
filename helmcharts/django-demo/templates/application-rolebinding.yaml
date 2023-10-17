@@ -1,0 +1,19 @@
+{{- if .Values.serviceAccount.create -}}
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "django-demo.serviceAccountName" . }}
+  namespace: {{ include "django-demo.namespace" . }}
+  labels:
+    {{- include "django-demo.labels" . | nindent 4 }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "django-demo.serviceAccountName" . }}
+  namespace: {{ include "django-demo.namespace" . }}
+roleRef:
+  kind: Role
+  name: {{ include "django-demo.serviceAccountName" . }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
+{{- end }}

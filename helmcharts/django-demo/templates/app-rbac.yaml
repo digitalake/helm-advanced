@@ -1,14 +1,15 @@
 {{- if .Values.serviceAccount.create -}}
-apiVersion: v1
-kind: ServiceAccount
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
 metadata:
   name: {{ include "django-demo.serviceAccountName" . }}
   namespace: {{ include "django-demo.namespace" . }}
   labels:
     {{- include "django-demo.labels" . | nindent 4 }}
-  {{- with .Values.serviceAccount.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
+  {{- with .Values.rbac.rules }}
+rules:
+  {{- toYaml . | nindent 4 }}
   {{- end }}
-  automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+{{- end }}
 {{- end }}
