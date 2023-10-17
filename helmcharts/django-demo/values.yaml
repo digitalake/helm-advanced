@@ -1,5 +1,10 @@
 # A namespaces for the resources defined in templates, not via dependencies
-namespace: application
+namespaceName: application
+
+# Define NS  labels for example, for PSPs
+namespaceLabels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: v1.28
 
 # Not used if hpa is enabled, instead min replica count controls deployment
 replicaCount: 1
@@ -32,16 +37,19 @@ serviceAccount:
 podAnnotations: {}
 podLabels: {}
 
-podSecurityContext: {}
-  # fsGroup: 2000
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 101
+  fsGroup: 101
+  seccompProfile:
+    type: "RuntimeDefault"
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+securityContext:
+  privileged: false
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
 
 service:
   type: ClusterIP

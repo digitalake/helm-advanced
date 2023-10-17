@@ -16,7 +16,7 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: {{ $fullName }}
-  namespace: {{ .Values.namespace}}
+  namespace: {{ include "django-demo.namespace" . }}
   labels:
     {{- include "django-demo.labels" . | nindent 4 }}
   annotations:

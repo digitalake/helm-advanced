@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "django-demo.fullname" . }}
-  namespace: {{ .Values.namespace }}
+  namespace: {{ include "django-demo.namespace" . }}
   labels:
     {{- include "django-demo.labels" . | nindent 4 }}
 spec:
@@ -38,6 +38,8 @@ spec:
       initContainers:
         - name: migrations
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           envFrom:
           - secretRef:
               name: {{ include "django-demo.fullname" . }}
@@ -46,6 +48,8 @@ spec:
           command: [ python, manage.py, migrate ]
         - name: collectstatic
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           volumeMounts:
             - name: staticfiles
               mountPath: /app/staticfiles/

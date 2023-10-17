@@ -31,6 +31,13 @@ Create chart name and version as used by the chart label.
 {{- end }}
 
 {{/*
+Create chart namespace by name defined or by the chart namespace value.
+*/}}
+{{- define "django-demo.namespace" -}}
+    {{ .Values.namespaceName | default .Release.Namespace }}
+{{- end -}}
+
+{{/*
 Common labels
 */}}
 {{- define "django-demo.labels" -}}
