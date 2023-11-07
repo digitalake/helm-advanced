@@ -1,0 +1,4 @@
+namespace: cert-manager
+  installCRDs: false
+  prometheus:
+    enabled: false

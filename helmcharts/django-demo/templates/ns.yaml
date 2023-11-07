@@ -4,3 +4,4 @@ metadata:
   name: {{ include "django-demo.namespace" . }}
   labels:
     {{- toYaml .Values.namespaceLabels | nindent 4 }}
+    {{- include "django-demo.labels" . | nindent 4 }}
